@@ -596,12 +596,14 @@
 
   async function runRealPayment(l, num, area){
     const reference = "HSK-" + uuid().slice(0,8).toUpperCase();
+    let res, resBody;
     try{
-      const res = await fetch(`${HOUSIKA_API_BASE}/api/stk-push`, {
+      res = await fetch(`${HOUSIKA_API_BASE}/api/stk-push`, {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ phone:num, amount:l.fee, reference, customerName: l.ownerName })
       });
-      if(!res.ok) throw new Error("stk-push request failed");
+      resBody = await res.json().catch(()=>({}));
+      if(!res.ok) throw { serverResponded:true, message: resBody.error || `Server returned ${res.status}`, details: resBody.details };
 
       let tries = 0;
       const poll = setInterval(async ()=>{
@@ -624,7 +626,11 @@
         }catch(e){ /* keep polling until tries run out */ }
       }, 3000);
     }catch(err){
-      area.innerHTML = `<div class="locked-box"><strong>Couldn't reach the payment server.</strong><div class="demo-note">Confirm your backend is deployed and HOUSIKA_API_BASE is set correctly.</div><button class="btn btn-primary btn-block" style="margin-top:10px;" id="retryBtn">Try again</button></div>`;
+      const heading = err && err.serverResponded ? "Payment request was rejected." : "Couldn't reach the payment server.";
+      const detail = err && err.serverResponded
+        ? escapeHTML(err.message || "See Render logs for details.")
+        : "Confirm your backend is deployed and HOUSIKA_API_BASE is set correctly.";
+      area.innerHTML = `<div class="locked-box"><strong>${heading}</strong><div class="demo-note">${detail}</div><button class="btn btn-primary btn-block" style="margin-top:10px;" id="retryBtn">Try again</button></div>`;
       document.getElementById("retryBtn").addEventListener("click", ()=> renderContactArea(l, false));
     }
   }
