@@ -1,14 +1,17 @@
 # HOUSIKA payment server
 
-A small server that keeps your PayHero credentials off the public website and
-proxies M-Pesa STK push requests on its behalf.
+This folder contains both the website (`housika.html`) and the server that
+keeps your PayHero credentials off it. Deploy this whole folder as one
+Render (or similar) service — visiting the deployed URL shows the site
+itself; `/health` shows a plain "running" check separate from that.
 
-## Why this exists
+## Why the server exists
 
 `housika.html` runs entirely in visitors' browsers. Anything written into
 that file — including API tokens — is visible to anyone who opens dev tools.
-This server holds your PayHero credentials as environment variables instead,
-so they're never shipped to the browser.
+The server holds your PayHero credentials as environment variables instead,
+so they're never shipped to the browser. It also now serves `housika.html`
+itself at the root URL, so you only need one deployment, not two.
 
 ## 1. Get your PayHero channel ID
 
@@ -30,31 +33,39 @@ Open `.env` and fill in:
 - `PAYHERO_CHANNEL_ID` — from step 1
 - `PUBLIC_CALLBACK_URL` — set this **after** you deploy (step 3), once you know your server's public address
 
-## 3. Deploy
+## 3. Deploy — this whole folder, as one service
 
 Any Node host works — Render, Railway, Fly.io, or your own VPS all have free
-or cheap tiers. General steps for something like Render:
+or cheap tiers. `housika.html` must stay in this same folder, next to
+`server.js` — the server serves it directly. General steps for something
+like Render:
 
-1. Push this `housika-server` folder to a GitHub repo (make sure `.env` is
-   in `.gitignore` — never commit real credentials).
+1. Push this entire `housika-server` folder (including `housika.html`) to a
+   GitHub repo (make sure `.env` is in `.gitignore` — never commit real
+   credentials).
 2. Create a new **Web Service** on Render, point it at the repo.
 3. Set the environment variables from your `.env` in Render's dashboard
    instead of uploading the file.
-4. Deploy. Render gives you a URL like `https://housika-api.onrender.com`.
+4. Deploy. Render gives you a URL like `https://housika.onrender.com` —
+   visiting it now shows the actual HOUSIKA website. `/health` shows the
+   plain "server is running" check.
 5. Set `PUBLIC_CALLBACK_URL` (in Render's env vars) to
-   `https://housika-api.onrender.com/api/payhero-callback`, and redeploy.
+   `https://housika.onrender.com/api/payhero-callback`, and redeploy.
 
-## 4. Connect the website
+## 4. Confirm the site is talking to itself
 
-Open `housika.html`, find this line near the top of the `<script>` block:
+Inside `housika.html`, near the top of the `<script>` block, this line
+should already point at your deployed URL:
 
 ```js
-const HOUSIKA_API_BASE = ""; // e.g. "https://housika-api.onrender.com"
+const HOUSIKA_API_BASE = "https://housika.onrender.com";
 ```
 
-Set it to your deployed server's URL (no trailing slash). Real M-Pesa
-payments switch on automatically — until it's set, the site uses a
-simulated payment flow so you can demo it without a backend at all.
+Since the site and server are now the same deployment, this will always be
+correct as long as you deploy this folder as-is. If you ever move the site
+to a different host than the server, update this line to wherever the
+server ends up living, and leave it blank to fall back to simulated demo
+payments.
 
 ## Notes on going further
 
