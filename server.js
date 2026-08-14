@@ -49,10 +49,26 @@ if (!PAYHERO_BASIC_TOKEN || !PAYHERO_CHANNEL_ID || !PUBLIC_CALLBACK_URL) {
 // this in-memory map resets whenever the server restarts.
 const transactions = new Map();
 
+// PayHero expects Kenyan numbers in international format with no plus sign,
+// e.g. 254712345678. Tenants naturally type 07XXXXXXXX or 01XXXXXXXX, so
+// normalize whatever format comes in from the site before sending it on.
+function normalizePhone(raw) {
+  const digits = String(raw).replace(/\D/g, ""); // strip spaces, +, dashes etc.
+  if (digits.startsWith("254")) return digits;
+  if (digits.startsWith("0")) return "254" + digits.slice(1);
+  if (digits.startsWith("7") || digits.startsWith("1")) return "254" + digits;
+  return digits;
+}
+
 app.post("/api/stk-push", async (req, res) => {
   const { phone, amount, reference, customerName } = req.body || {};
   if (!phone || !amount || !reference) {
     return res.status(400).json({ error: "phone, amount and reference are required" });
+  }
+
+  const phoneNumber = normalizePhone(phone);
+  if (!/^254(7|1)\d{8}$/.test(phoneNumber)) {
+    return res.status(400).json({ error: `"${phone}" doesn't look like a valid Kenyan phone number` });
   }
 
   try {
@@ -64,7 +80,7 @@ app.post("/api/stk-push", async (req, res) => {
       },
       body: JSON.stringify({
         amount: Math.round(Number(amount)),
-        phone_number: phone,
+        phone_number: phoneNumber,
         channel_id: Number(PAYHERO_CHANNEL_ID),
         provider: "m-pesa",
         external_reference: reference,
