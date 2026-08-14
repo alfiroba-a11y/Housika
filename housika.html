@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOUSIKA — Find & list vacant houses in Kenya</title>
+<meta name="description" content="HOUSIKA is a portal for finding and listing vacant houses across Kenya. See the real location and rent upfront, then unlock the landlord's contact for a small fee.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#12171A; --ink-2:#1B2124; --ink-3:#232A2D;
+    --paper:#F7F3EA; --paper-dim:#EAE3D2;
+    --marigold:#EAA53E; --marigold-dim:#3a2f1b;
+    --jade:#2F9174; --jade-dim:#183328;
+    --rust:#C3532E; --rust-dim:#3a2018;
+    --mist:#96A5A1; --line:rgba(247,243,234,0.13); --line-strong:rgba(247,243,234,0.27);
+    --shadow:0 22px 54px -22px rgba(0,0,0,0.65); --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0; background:var(--ink); color:var(--paper); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;} button{font-family:inherit;}
+  :focus-visible{outline:2px solid var(--marigold); outline-offset:2px;}
+  ::selection{background:var(--marigold); color:var(--ink);}
+
+  #app{max-width:1180px; margin:0 auto; padding:0 24px;}
+  header.topbar{position:sticky; top:0; z-index:40; background:rgba(18,23,26,0.88); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);}
+  .topbar-inner{max-width:1180px; margin:0 auto; padding:15px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:700; font-size:19px; letter-spacing:-0.02em;}
+  .brand-mark{width:32px; height:32px; border-radius:9px; background:linear-gradient(155deg,var(--marigold),var(--rust)); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:12.5px; color:var(--ink); flex-shrink:0;}
+  .brand-tag{font-size:11px; color:var(--mist); font-weight:500; margin-left:2px; display:none;}
+  @media(min-width:720px){.brand-tag{display:inline;}}
+  nav.mainnav{display:flex; gap:4px; align-items:center;}
+  .navbtn{background:transparent; border:none; color:var(--mist); padding:9px 14px; border-radius:999px; font-size:14px; font-weight:500; cursor:pointer; transition:all .15s ease;}
+  .navbtn:hover{color:var(--paper); background:var(--ink-3);}
+  .navbtn.active{color:var(--ink); background:var(--paper);}
+
+  .hero{padding:60px 0 34px;}
+  .eyebrow{display:inline-flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--marigold); border:1px solid var(--marigold-dim); background:var(--marigold-dim); padding:6px 12px; border-radius:999px; margin-bottom:22px;}
+  .eyebrow-dot{width:6px; height:6px; border-radius:50%; background:var(--marigold); animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .hero h1{font-size:clamp(32px,5.2vw,54px); line-height:1.05; letter-spacing:-0.03em; margin:0 0 20px; max-width:16ch;}
+  .hero h1 em{font-style:normal; color:var(--marigold);}
+  .hero p.lede{font-size:17.5px; color:var(--mist); max-width:56ch; line-height:1.65; margin:0 0 30px;}
+  .hero p.lede strong{color:var(--paper);}
+  .hero-ctas{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:8px;}
+
+  .btn{display:inline-flex; align-items:center; gap:8px; padding:13px 22px; border-radius:10px; font-weight:600; font-size:14.5px; cursor:pointer; border:1px solid transparent; transition:transform .12s ease, filter .15s ease;}
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--marigold); color:var(--ink);}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{background:transparent; border-color:var(--line-strong); color:var(--paper);}
+  .btn-ghost:hover{background:var(--ink-3);}
+  .btn-jade{background:var(--jade); color:#eafff5;}
+  .btn-jade:hover{filter:brightness(1.1);}
+  .btn-block{width:100%; justify-content:center;}
+  .btn-sm{padding:9px 14px; font-size:13px; border-radius:8px;}
+  .btn[disabled]{opacity:.55; cursor:not-allowed;}
+
+  /* how it works */
+  .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:34px 0 46px;}
+  @media(max-width:780px){.steps{grid-template-columns:1fr;}}
+  .step{background:var(--ink-2); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .step .num{font-family:'IBM Plex Mono',monospace; color:var(--marigold); font-size:13px; font-weight:600; margin-bottom:10px;}
+  .step h4{margin:0 0 6px; font-size:15.5px;}
+  .step p{margin:0; font-size:13.5px; color:var(--mist); line-height:1.55;}
+
+  .ticker-wrap{border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:14px 0; overflow:hidden; position:relative; margin-bottom:8px;}
+  .ticker-wrap::before,.ticker-wrap::after{content:''; position:absolute; top:0; bottom:0; width:70px; z-index:2; pointer-events:none;}
+  .ticker-wrap::before{left:0; background:linear-gradient(90deg, var(--ink), transparent);}
+  .ticker-wrap::after{right:0; background:linear-gradient(-90deg, var(--ink), transparent);}
+  .ticker-track{display:flex; gap:14px; width:max-content; animation:scroll-left 42s linear infinite;}
+  .ticker-wrap:hover .ticker-track{animation-play-state:paused;}
+  @keyframes scroll-left{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+  .ticker-chip{display:flex; align-items:center; gap:10px; background:var(--ink-2); border:1px solid var(--line); padding:9px 14px; border-radius:999px; white-space:nowrap; font-size:13px; flex-shrink:0;}
+  .ticker-chip .code{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink); background:var(--paper); padding:2px 7px; border-radius:5px; font-weight:600;}
+  .ticker-chip .fee{color:var(--marigold); font-family:'IBM Plex Mono',monospace; font-size:12px;}
+
+  .pillrow{display:flex; gap:8px; flex-wrap:wrap; margin:28px 0 8px;}
+  .pill{background:var(--ink-2); border:1px solid var(--line); color:var(--paper); padding:8px 15px; border-radius:999px; font-size:13.5px; cursor:pointer; transition:all .15s ease;}
+  .pill:hover{border-color:var(--line-strong);}
+  .pill.active{background:var(--paper); color:var(--ink); border-color:var(--paper); font-weight:600;}
+
+  section{padding:44px 0;}
+  .section-head{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:24px; flex-wrap:wrap;}
+  .section-head h2{font-size:25px; letter-spacing:-0.02em; margin:0;}
+  .section-head p{color:var(--mist); margin:6px 0 0; font-size:14.5px;}
+
+  .filterbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; background:var(--ink-2); border:1px solid var(--line); padding:14px; border-radius:var(--radius); margin-bottom:28px;}
+  select, input[type=text], input[type=number], input[type=tel], textarea{background:var(--ink-3); border:1px solid var(--line-strong); color:var(--paper); padding:10px 12px; border-radius:8px; font-size:14px; font-family:inherit;}
+  select{cursor:pointer;}
+  .filterbar select{flex:1; min-width:140px;}
+  label.field-label{display:block; font-size:12.5px; color:var(--mist); margin:0 0 6px; font-weight:500;}
+  .field{margin-bottom:16px;}
+  textarea{width:100%; resize:vertical; min-height:90px; line-height:1.5;}
+  input:focus, select:focus, textarea:focus{border-color:var(--marigold);}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px;}
+  .ticket{background:var(--paper); color:var(--ink); border-radius:var(--radius); display:flex; flex-direction:column; overflow:hidden; box-shadow:var(--shadow); position:relative; opacity:0; transform:translateY(14px); animation:rise .5s ease forwards;}
+  .ticket:hover{box-shadow:0 26px 60px -18px rgba(0,0,0,0.7);}
+  @keyframes rise{to{opacity:1; transform:translateY(0);}}
+  .ticket-photo{height:104px; position:relative; overflow:hidden; display:flex; align-items:flex-start; justify-content:space-between; padding:10px 12px;}
+  .ticket-photo svg{position:absolute; bottom:-8px; right:-6px; opacity:.28;}
+  .ph-badge{font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:11px; background:rgba(20,24,26,0.42); color:#fff; padding:4px 9px; border-radius:6px; letter-spacing:.03em; backdrop-filter:blur(2px); z-index:1;}
+  .ticket-body{display:flex; flex:1;}
+  .ticket-main{flex:1; padding:16px; min-width:0;}
+  .ticket h3{font-size:16.5px; margin:0 0 4px; letter-spacing:-0.01em; line-height:1.25;}
+  .ticket .loc{font-size:13.5px; color:#5c6664; margin:0 0 12px; display:flex; align-items:center; gap:5px;}
+  .amenities{display:flex; flex-wrap:wrap; gap:6px;}
+  .amenity{font-size:11px; background:var(--paper-dim); padding:3px 8px; border-radius:5px; color:#4a5250;}
+  .ticket-stub{width:112px; flex-shrink:0; background:var(--paper-dim); border-left:2px dashed #c9c1a9; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:14px 9px; text-align:center;}
+  .ticket-stub::before,.ticket-stub::after{content:''; position:absolute; left:-9px; width:18px; height:18px; border-radius:50%; background:var(--ink);}
+  .ticket-stub::before{top:-9px;} .ticket-stub::after{bottom:-9px;}
+  .price{font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:15.5px; line-height:1.2;}
+  .price small{display:block; font-size:9.5px; font-weight:400; color:#6b7472; margin-top:2px;}
+  .lockbtn{background:var(--rust); color:#fff3ec; border:none; padding:7px 8px; border-radius:7px; font-size:10.5px; font-weight:600; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; line-height:1.3; width:100%;}
+  .lockbtn.unlocked{background:var(--jade); color:#e9fff5;}
+  .lockbtn:hover{filter:brightness(1.08);}
+  @media(max-width:480px){
+    .ticket-body{flex-direction:column;}
+    .ticket-stub{width:auto; border-left:none; border-top:2px dashed #c9c1a9; flex-direction:row; padding:12px 16px;}
+    .ticket-stub::before{left:-9px; top:-9px;} .ticket-stub::after{left:auto; right:-9px; top:-9px; bottom:auto;}
+    .price{text-align:left;}
+  }
+
+  .empty{border:1px dashed var(--line-strong); border-radius:var(--radius); padding:48px 24px; text-align:center; color:var(--mist);}
+  .empty strong{color:var(--paper); display:block; margin-bottom:6px; font-size:16px;}
+
+  .overlay{position:fixed; inset:0; background:rgba(8,10,11,0.74); backdrop-filter:blur(4px); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity .2s ease;}
+  .overlay.show{opacity:1; pointer-events:auto;}
+  .modal{background:var(--paper); color:var(--ink); border-radius:18px; max-width:480px; width:100%; max-height:88vh; overflow-y:auto; padding:28px; position:relative; transform:scale(.96) translateY(8px); transition:transform .2s ease;}
+  .overlay.show .modal{transform:scale(1) translateY(0);}
+  .modal-close{position:absolute; top:16px; right:16px; background:var(--paper-dim); border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:16px; color:#4a5250;}
+  .modal h2{font-size:22px; margin:0 0 4px;}
+  .modal .loc{color:#5c6664; font-size:14px; margin:0 0 18px;}
+  .contact-box{background:var(--jade-dim); border:1px solid #2a5343; color:#dffff0; padding:16px; border-radius:10px; margin-top:16px;}
+  .contact-box .num{font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600; margin:4px 0 12px;}
+  .contact-actions{display:flex; gap:8px;}
+  .locked-box{background:var(--rust-dim); border:1px solid #5a3324; padding:18px; border-radius:10px; margin-top:16px; text-align:center;}
+  .locked-box .fee-amt{font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; margin:6px 0 14px;}
+  .demo-note{font-size:11.5px; color:#8a7c6f; margin:10px 0 0;}
+  .spinner{width:42px; height:42px; border-radius:50%; border:3px solid var(--paper-dim); border-top-color:var(--rust); margin:0 auto 16px; animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .card{background:var(--ink-2); border:1px solid var(--line); border-radius:var(--radius); padding:24px;}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+  .chip-select{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip-opt{background:var(--ink-3); border:1px solid var(--line-strong); padding:7px 13px; border-radius:999px; font-size:13px; cursor:pointer; user-select:none;}
+  .chip-opt.on{background:var(--marigold); color:var(--ink); border-color:var(--marigold); font-weight:600;}
+  .mylisting-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  .mylisting-row:last-child{border-bottom:none;}
+  .mylisting-info{font-size:14px;}
+  .mylisting-info .mono{color:var(--marigold); font-size:13px;}
+  .status-badge{font-size:10.5px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:8px; text-transform:uppercase; letter-spacing:.04em; vertical-align:middle;}
+  .status-badge.vacant{background:var(--jade-dim); color:#7fe0bc;}
+  .status-badge.rented{background:var(--rust-dim); color:#e3a48f;}
+  .row-actions{display:flex; gap:8px;}
+  .del-btn, .toggle-btn{background:transparent; border:1px solid var(--line-strong); color:var(--mist); padding:7px 12px; border-radius:7px; font-size:12.5px; cursor:pointer;}
+  .del-btn:hover{border-color:var(--rust); color:var(--rust);}
+  .toggle-btn:hover{border-color:var(--jade); color:var(--jade);}
+
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--paper); color:var(--ink); padding:14px 22px; border-radius:10px; font-weight:600; font-size:14px; box-shadow:var(--shadow); z-index:200; opacity:0; transition:all .25s ease; display:flex; align-items:center; gap:10px; max-width:90vw;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast .dot{width:8px; height:8px; border-radius:50%; background:var(--jade); flex-shrink:0;}
+
+  footer{border-top:1px solid var(--line); margin-top:20px; padding:32px 0 60px; color:var(--mist); font-size:13.5px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;}
+
+  [data-view]{display:none;} [data-view].active{display:block;}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important;}
+    .ticket{opacity:1; transform:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="brand-mark">HK</span> HOUSIKA <span class="brand-tag">· vacant houses, verified upfront</span></div>
+    <nav class="mainnav">
+      <button class="navbtn active" data-nav="home">Home</button>
+      <button class="navbtn" data-nav="browse">Browse</button>
+      <button class="navbtn" data-nav="landlord">List your house</button>
+    </nav>
+  </div>
+</header>
+
+<div id="app">
+
+  <!-- HOME -->
+  <div data-view="home" class="active">
+    <div class="hero">
+      <span class="eyebrow"><span class="eyebrow-dot"></span> Live across 10 counties</span>
+      <h1>Kenya's portal for <em>vacant</em> houses.</h1>
+      <p class="lede"><strong>HOUSIKA</strong> is where landlords list houses that are actually available, and tenants find them — real location and rent shown upfront, every time. The moment a house is rented, the landlord marks it and it comes off the board automatically, so you never chase a house that's already gone.</p>
+      <div class="hero-ctas">
+        <button class="btn btn-primary" data-nav="browse">Browse vacant houses</button>
+        <button class="btn btn-ghost" data-nav="landlord">List your house →</button>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step"><div class="num">01</div><h4>Browse by county</h4><p>See the real neighbourhood and monthly rent for every vacant house — no hidden details, no guesswork.</p></div>
+      <div class="step"><div class="num">02</div><h4>Unlock the contact</h4><p>Pay a small, fixed viewing fee by M-Pesa to reveal the landlord's name and phone number.</p></div>
+      <div class="step"><div class="num">03</div><h4>Call & view</h4><p>Speak to the landlord directly, arrange a viewing, and move in — no agents in between.</p></div>
+    </div>
+
+    <div class="ticker-wrap"><div class="ticker-track" id="tickerTrack"></div></div>
+
+    <div class="pillrow" id="homeCountyPills"></div>
+
+    <section>
+      <div class="section-head">
+        <div><h2>Fresh on the board</h2><p>Newest vacant houses across every county.</p></div>
+        <button class="btn btn-ghost btn-sm" data-nav="browse">View all →</button>
+      </div>
+      <div class="grid" id="homeGrid"></div>
+    </section>
+  </div>
+
+  <!-- BROWSE -->
+  <div data-view="browse">
+    <section style="padding-top:36px;">
+      <div class="section-head">
+        <div><h2>Browse vacant houses</h2><p id="browseCount">—</p></div>
+      </div>
+      <div class="filterbar">
+        <select id="fCounty"><option value="">All counties</option></select>
+        <select id="fType">
+          <option value="">Any type</option>
+          <option>Bedsitter</option><option>Studio</option><option>Apartment</option>
+          <option>Townhouse</option><option>Bungalow</option><option>Maisonette</option>
+        </select>
+        <select id="fBeds">
+          <option value="">Any bedrooms</option>
+          <option value="0">Bedsitter/Studio</option><option value="1">1 bedroom</option>
+          <option value="2">2 bedrooms</option><option value="3">3 bedrooms</option><option value="4">4+ bedrooms</option>
+        </select>
+        <select id="fSort">
+          <option value="new">Newest first</option>
+          <option value="low">Price: low to high</option>
+          <option value="high">Price: high to low</option>
+        </select>
+      </div>
+      <div class="grid" id="browseGrid"></div>
+    </section>
+  </div>
+
+  <!-- LANDLORD -->
+  <div data-view="landlord">
+    <section style="padding-top:36px;">
+      <div class="section-head">
+        <div><h2>List your house</h2><p>Your phone number is only shown to tenants who've paid the viewing fee. Mark it as rented the moment it's taken and it leaves the board instantly.</p></div>
+      </div>
+
+      <div class="card" style="margin-bottom:28px;">
+        <div class="two-col">
+          <div class="field"><label class="field-label">Your name</label><input type="text" id="lName" placeholder="e.g. Grace Wanjiru"></div>
+          <div class="field"><label class="field-label">Your phone number</label><input type="tel" id="lPhone" placeholder="07XX XXX XXX"></div>
+        </div>
+        <div class="two-col">
+          <div class="field"><label class="field-label">Listing title</label><input type="text" id="lTitle" placeholder="e.g. Sunny 2BR near Yaya Centre"></div>
+          <div class="field"><label class="field-label">Type</label>
+            <select id="lType"><option>Bedsitter</option><option>Studio</option><option selected>Apartment</option><option>Townhouse</option><option>Bungalow</option><option>Maisonette</option></select>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="field"><label class="field-label">County</label><select id="lCounty"></select></div>
+          <div class="field"><label class="field-label">Area / neighbourhood</label><input type="text" id="lArea" placeholder="e.g. Kilimani"></div>
+        </div>
+        <div class="two-col">
+          <div class="field"><label class="field-label">Bedrooms</label><input type="number" id="lBeds" min="0" max="10" value="1"></div>
+          <div class="field"><label class="field-label">Monthly rent (KES)</label><input type="number" id="lPrice" min="0" step="500" placeholder="e.g. 35000"></div>
+        </div>
+        <div class="field"><label class="field-label">Viewing / contact-unlock fee (KES)</label><input type="number" id="lFee" min="0" step="50" value="300" style="max-width:160px;"></div>
+        <div class="field"><label class="field-label">Description</label><textarea id="lDesc" placeholder="Describe the house, the neighbourhood, and anything a tenant should know before viewing."></textarea></div>
+        <div class="field">
+          <label class="field-label">Amenities</label>
+          <div class="chip-select" id="lAmenities">
+            <span class="chip-opt" data-a="Parking">Parking</span>
+            <span class="chip-opt" data-a="24/7 water">24/7 water</span>
+            <span class="chip-opt" data-a="Gated & secure">Gated &amp; secure</span>
+            <span class="chip-opt" data-a="Furnished">Furnished</span>
+            <span class="chip-opt" data-a="Backup generator">Backup generator</span>
+            <span class="chip-opt" data-a="Pet friendly">Pet friendly</span>
+            <span class="chip-opt" data-a="Wifi ready">Wifi ready</span>
+            <span class="chip-opt" data-a="Borehole">Borehole</span>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" id="submitListing">Publish listing</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 4px; font-size:18px;">My listings</h3>
+        <p style="color:var(--mist); font-size:13.5px; margin:0 0 10px;">Only visible to you on this device. Rented houses stay here but disappear from Browse and Home.</p>
+        <div id="myListings"></div>
+      </div>
+    </section>
+  </div>
+
+</div>
+
+<footer>
+  <div style="max-width:1180px; margin:0 auto; width:100%; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:0 24px;">
+    <span>HOUSIKA — find and list vacant houses across Kenya.</span>
+    <span id="paymentModeLabel">Demo payments — connect a backend for real M-Pesa via PayHero.</span>
+  </div>
+</footer>
+
+<div class="overlay" id="overlay"><div class="modal" id="modalBody"></div></div>
+<div class="toast" id="toast"><span class="dot"></span><span id="toastMsg"></span></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================================
+     PAYMENTS CONFIG
+     HOUSIKA never stores PayHero credentials in this file — they'd be visible
+     to anyone who views page source. Instead this front end calls YOUR OWN
+     backend, which holds the credentials as environment variables and talks
+     to PayHero on your behalf. A ready-to-deploy backend (server.js) ships
+     alongside this file.
+
+     Once your backend is deployed, put its public URL below and real M-Pesa
+     STK push payments switch on automatically. Leave it blank to keep using
+     simulated demo payments (no real charge, useful for showing the product).
+  ========================================================================= */
+  const HOUSIKA_API_BASE = ""; // e.g. "https://housika-api.onrender.com"
+
+  document.getElementById("paymentModeLabel").textContent = HOUSIKA_API_BASE
+    ? "Payments powered by PayHero (M-Pesa)."
+    : "Demo payments — connect a backend for real M-Pesa via PayHero.";
+
+  const COUNTIES = [
+    {code:"NBO", name:"Nairobi"}, {code:"MSA", name:"Mombasa"}, {code:"KSM", name:"Kisumu"},
+    {code:"NAK", name:"Nakuru"}, {code:"ELD", name:"Uasin Gishu"}, {code:"KMB", name:"Kiambu"},
+    {code:"MCK", name:"Machakos"}, {code:"KJD", name:"Kajiado"}, {code:"KLF", name:"Kilifi"}, {code:"NYR", name:"Nyeri"}
+  ];
+  const COUNTY_THEME = {
+    Nairobi:["#EAA53E","#C3532E"], Mombasa:["#1c5f6e","#2F9174"], Kisumu:["#1c5f6e","#274b7a"],
+    Nakuru:["#EAA53E","#d9497a"], "Uasin Gishu":["#6b8f3f","#EAA53E"], Kiambu:["#2F9174","#6b8f3f"],
+    Machakos:["#C3532E","#8a6a4a"], Kajiado:["#EAA53E","#8a5a2a"], Kilifi:["#1c5f6e","#2F9174"], Nyeri:["#274b3a","#6b8f3f"]
+  };
+  const countyCode = name => (COUNTIES.find(c=>c.name===name)||{}).code || "KE";
+  const countyGrad = name => { const [a,b] = COUNTY_THEME[name] || ["#3a4340","#20262a"]; return `linear-gradient(135deg, ${a}, ${b})`; };
+  const fmtKES = n => "KES " + Number(n).toLocaleString("en-KE");
+  const HOUSE_ICON = `<svg width="120" height="90" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 55 L45 25 L80 55 V85 H10 Z" stroke="#fff" stroke-width="3"/><rect x="55" y="60" width="16" height="25" stroke="#fff" stroke-width="3"/><path d="M75 40 L100 20 L120 36 V85 H75" stroke="#fff" stroke-width="3"/></svg>`;
+
+  const SEED = [
+    {title:"Sunny 2BR near Yaya Centre", county:"Nairobi", area:"Kilimani", type:"Apartment", beds:2, price:65000, fee:300, desc:"Bright corner unit on the 4th floor, walking distance to Yaya Centre and Kilimani cafes. Recently repainted.", amenities:["Parking","24/7 water","Gated & secure","Wifi ready"], ownerName:"Grace Wanjiru", phone:"0722 445 019"},
+    {title:"Cozy bedsitter, Ngara", county:"Nairobi", area:"Ngara", type:"Bedsitter", beds:0, price:9500, fee:150, desc:"Compact and affordable, five minutes' walk to Ngara market and matatu stage. Great for students.", amenities:["24/7 water","Gated & secure"], ownerName:"Peter Otieno", phone:"0711 220 984"},
+    {title:"Beachside studio, Nyali", county:"Mombasa", area:"Nyali", type:"Studio", beds:0, price:28000, fee:250, desc:"Ten-minute walk to Nyali beach, quiet compound with mature gardens.", amenities:["Furnished","Parking","Backup generator"], ownerName:"Fatuma Said", phone:"0733 601 772"},
+    {title:"Family townhouse, Milimani", county:"Kisumu", area:"Milimani", type:"Townhouse", beds:3, price:48000, fee:400, desc:"Three-bedroom townhouse in a gated estate, close to Milimani schools.", amenities:["Parking","Gated & secure","Borehole"], ownerName:"Brian Otieno", phone:"0700 118 553"},
+    {title:"Modern 1BR, Section 58", county:"Nakuru", area:"Section 58", type:"Apartment", beds:1, price:19000, fee:200, desc:"New building, tiled throughout, close to Nakuru CBD.", amenities:["24/7 water","Wifi ready"], ownerName:"Mercy Chebet", phone:"0745 992 301"},
+    {title:"Spacious maisonette, Elgon View", county:"Uasin Gishu", area:"Elgon View", type:"Maisonette", beds:4, price:55000, fee:350, desc:"Four-bedroom maisonette with a small garden, quiet residential street.", amenities:["Parking","Gated & secure","Backup generator","Pet friendly"], ownerName:"Kevin Kiprotich", phone:"0788 240 667"},
+    {title:"Bright bungalow, Kikuyu", county:"Kiambu", area:"Kikuyu", type:"Bungalow", beds:2, price:22000, fee:200, desc:"Standalone bungalow with its own compound, five minutes from Kikuyu station.", amenities:["Parking","Borehole","Pet friendly"], ownerName:"Alice Njeri", phone:"0798 334 512"},
+    {title:"Affordable studio, Machakos town", county:"Machakos", area:"Machakos Town", type:"Studio", beds:0, price:12000, fee:150, desc:"Close to Machakos bus terminus and open-air market.", amenities:["24/7 water"], ownerName:"Daniel Mutuku", phone:"0721 887 245"},
+    {title:"Gated 2BR, Rongai", county:"Kajiado", area:"Ongata Rongai", type:"Apartment", beds:2, price:24000, fee:250, desc:"Ground-floor unit with a small yard, near Rongai town centre.", amenities:["Parking","Gated & secure","Wifi ready"], ownerName:"Susan Wambui", phone:"0700 552 918"},
+    {title:"Seafront bedsitter, Kilifi", county:"Kilifi", area:"Kilifi Town", type:"Bedsitter", beds:0, price:8500, fee:150, desc:"Simple, clean, five-minute boda ride to Kilifi creek bridge.", amenities:["24/7 water"], ownerName:"Omar Charo", phone:"0711 664 830"}
+  ];
+
+  let listings = [];
+  let myId = null;
+  let unlocked = [];
+  let filters = {county:"", type:"", beds:"", sort:"new"};
+
+  async function getShared(key, fallback){ try{ const r = await window.storage.get(key, true); return r ? JSON.parse(r.value) : fallback; } catch(e){ return fallback; } }
+  async function setShared(key, val){ try{ await window.storage.set(key, JSON.stringify(val), true); return true; } catch(e){ console.error("storage set failed", e); return false; } }
+  async function getPersonal(key, fallback){ try{ const r = await window.storage.get(key, false); return r ? JSON.parse(r.value) : fallback; } catch(e){ return fallback; } }
+  async function setPersonal(key, val){ try{ await window.storage.set(key, JSON.stringify(val), false); return true; } catch(e){ console.error("storage set failed", e); return false; } }
+  function uuid(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{ const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8); return v.toString(16); }); }
+
+  async function init(){
+    populateCountySelects();
+    buildAmenityChips();
+
+    listings = await getShared("listings", null);
+    if(!listings){
+      listings = SEED.map(s => ({ id: uuid(), ownerId:"seed", status:"vacant", createdAt: Date.now() - Math.random()*9e8, ...s }));
+      await setShared("listings", listings);
+    } else {
+      // backfill status for listings saved before the vacant/rented feature existed
+      let changed = false;
+      listings.forEach(l => { if(!l.status){ l.status = "vacant"; changed = true; } });
+      if(changed) await setShared("listings", listings);
+    }
+
+    myId = await getPersonal("landlord-id", null);
+    if(!myId){ myId = uuid(); await setPersonal("landlord-id", myId); }
+    document.getElementById("lName").value = await getPersonal("landlord-name", "");
+    document.getElementById("lPhone").value = await getPersonal("landlord-phone", "");
+
+    unlocked = await getPersonal("unlocked-ids", []);
+
+    renderAll();
+  }
+
+  function renderAll(){
+    renderTicker(); renderHomePills(); renderHomeGrid(); renderBrowse(); renderMyListings();
+  }
+  const visible = () => listings.filter(l => l.status !== "rented");
+
+  function populateCountySelects(){
+    [document.getElementById("fCounty"), document.getElementById("lCounty")].forEach(sel=>{
+      COUNTIES.forEach(c=>{ const o = document.createElement("option"); o.value = c.name; o.textContent = c.name + " (" + c.code + ")"; sel.appendChild(o); });
+    });
+  }
+  function buildAmenityChips(){
+    document.querySelectorAll("#lAmenities .chip-opt").forEach(chip=> chip.addEventListener("click", ()=> chip.classList.toggle("on")));
+  }
+
+  document.querySelectorAll("[data-nav]").forEach(btn=> btn.addEventListener("click", ()=> switchView(btn.getAttribute("data-nav"))));
+  function switchView(view){
+    document.querySelectorAll(".navbtn").forEach(b=> b.classList.toggle("active", b.getAttribute("data-nav")===view));
+    document.querySelectorAll("[data-view]").forEach(v=> v.classList.toggle("active", v.getAttribute("data-view")===view));
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  function renderTicker(){
+    const track = document.getElementById("tickerTrack");
+    const items = visible().slice(0, 12);
+    const doubled = items.concat(items);
+    track.innerHTML = doubled.map(l => `
+      <div class="ticker-chip">
+        <span class="code">${countyCode(l.county)}</span>
+        <span>${l.area} · ${l.beds===0?"Studio/Bedsitter":l.beds+"BR"}</span>
+        <span class="fee">${fmtKES(l.price)}/mo</span>
+        <span class="fee">🔒 ${fmtKES(l.fee)}</span>
+      </div>`).join("");
+  }
+
+  function renderHomePills(){
+    const wrap = document.getElementById("homeCountyPills");
+    const counts = {};
+    visible().forEach(l=> counts[l.county] = (counts[l.county]||0)+1);
+    const active = COUNTIES.filter(c=>counts[c.name]);
+    wrap.innerHTML = `<span class="pill active" data-county="">All counties</span>` +
+      active.map(c=>`<span class="pill" data-county="${c.name}">${c.name} <span class="mono" style="opacity:.6">(${counts[c.name]})</span></span>`).join("");
+    wrap.querySelectorAll(".pill").forEach(p=> p.addEventListener("click", ()=>{
+      filters.county = p.getAttribute("data-county");
+      document.getElementById("fCounty").value = filters.county;
+      switchView("browse"); renderBrowse();
+    }));
+  }
+
+  function renderHomeGrid(){
+    const sorted = [...visible()].sort((a,b)=> b.createdAt - a.createdAt).slice(0,6);
+    document.getElementById("homeGrid").innerHTML = sorted.map(ticketHTML).join("") || emptyHTML("No vacant houses yet.");
+    attachTicketHandlers(document.getElementById("homeGrid"));
+  }
+
+  ["fCounty","fType","fBeds","fSort"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", e=>{
+      const map = {fCounty:"county", fType:"type", fBeds:"beds", fSort:"sort"};
+      filters[map[id]] = e.target.value; renderBrowse();
+    });
+  });
+
+  function renderBrowse(){
+    let items = [...visible()];
+    if(filters.county) items = items.filter(l=> l.county === filters.county);
+    if(filters.type) items = items.filter(l=> l.type === filters.type);
+    if(filters.beds !== ""){
+      if(filters.beds === "4") items = items.filter(l=> l.beds >= 4);
+      else if(filters.beds !== "") items = items.filter(l=> String(l.beds) === filters.beds);
+    }
+    if(filters.sort === "low") items.sort((a,b)=> a.price - b.price);
+    else if(filters.sort === "high") items.sort((a,b)=> b.price - a.price);
+    else items.sort((a,b)=> b.createdAt - a.createdAt);
+
+    document.getElementById("browseCount").textContent = items.length + (items.length===1 ? " vacant house found" : " vacant houses found");
+    const grid = document.getElementById("browseGrid");
+    grid.innerHTML = items.map(ticketHTML).join("") || emptyHTML("No vacant houses match those filters yet.");
+    attachTicketHandlers(grid);
+  }
+
+  function emptyHTML(msg){ return `<div class="empty" style="grid-column:1/-1;"><strong>Nothing here yet</strong>${msg}</div>`; }
+
+  function ticketHTML(l){
+    const isUnlocked = unlocked.includes(l.id);
+    return `
+    <div class="ticket" data-id="${l.id}">
+      <div class="ticket-photo" style="background:${countyGrad(l.county)}">
+        <span class="ph-badge">${countyCode(l.county)}</span>
+        <span class="ph-badge">${l.type}</span>
+        ${HOUSE_ICON}
+      </div>
+      <div class="ticket-body">
+        <div class="ticket-main">
+          <h3>${escapeHTML(l.title)}</h3>
+          <p class="loc">📍 ${escapeHTML(l.area)}, ${escapeHTML(l.county)}</p>
+          <div class="amenities">${l.amenities.slice(0,3).map(a=>`<span class="amenity">${escapeHTML(a)}</span>`).join("")}</div>
+        </div>
+        <div class="ticket-stub">
+          <div class="price">${fmtKES(l.price)}<small>per month</small></div>
+          <button class="lockbtn ${isUnlocked?'unlocked':''}" data-open="${l.id}">
+            ${isUnlocked ? "✓ Contact unlocked" : "🔒 Unlock · " + fmtKES(l.fee)}
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function attachTicketHandlers(scope){
+    scope.querySelectorAll("[data-open]").forEach(btn=> btn.addEventListener("click", ()=> openListing(btn.getAttribute("data-open"))));
+  }
+  function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+
+  const overlay = document.getElementById("overlay");
+  const modalBody = document.getElementById("modalBody");
+  function closeModal(){ overlay.classList.remove("show"); }
+  overlay.addEventListener("click", e=>{ if(e.target === overlay) closeModal(); });
+
+  function openListing(id){
+    const l = listings.find(x=>x.id===id);
+    if(!l) return;
+    const isUnlocked = unlocked.includes(l.id);
+    modalBody.innerHTML = `
+      <button class="modal-close" id="mClose">✕</button>
+      <span class="ph-badge" style="background:${countyGrad(l.county)}; display:inline-block; margin-bottom:10px;">${countyCode(l.county)} · ${escapeHTML(l.type)}</span>
+      <h2>${escapeHTML(l.title)}</h2>
+      <p class="loc">📍 ${escapeHTML(l.area)}, ${escapeHTML(l.county)} — ${l.beds===0?"Studio/Bedsitter":l.beds+" bedroom(s)"}</p>
+      <div class="price" style="font-size:22px; margin-bottom:14px;">${fmtKES(l.price)} <small style="display:inline;">/ month</small></div>
+      <p style="line-height:1.6; font-size:14.5px; color:#3c4442;">${escapeHTML(l.desc)}</p>
+      <div class="amenities" style="margin:14px 0;">${l.amenities.map(a=>`<span class="amenity">${escapeHTML(a)}</span>`).join("")}</div>
+      <div id="contactArea"></div>`;
+    document.getElementById("mClose").addEventListener("click", closeModal);
+    renderContactArea(l, isUnlocked);
+    overlay.classList.add("show");
+  }
+
+  function renderContactArea(l, isUnlocked){
+    const area = document.getElementById("contactArea");
+    if(isUnlocked){
+      area.innerHTML = `
+        <div class="contact-box">
+          <div style="font-size:12.5px; opacity:.8; text-transform:uppercase; letter-spacing:.05em;">Landlord</div>
+          <div style="font-weight:600; margin:2px 0 8px;">${escapeHTML(l.ownerName)}</div>
+          <div class="num">${escapeHTML(l.phone)}</div>
+          <div class="contact-actions">
+            <a class="btn btn-jade btn-sm" href="tel:${l.phone.replace(/\s/g,'')}">Call</a>
+            <a class="btn btn-ghost btn-sm" style="color:#dffff0; border-color:#2a5343;" href="https://wa.me/254${l.phone.replace(/\D/g,'').replace(/^0/,'')}" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+        </div>`;
+    } else {
+      area.innerHTML = `
+        <div class="locked-box">
+          <div style="font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; opacity:.85;">Viewing fee to unlock contact</div>
+          <div class="fee-amt">${fmtKES(l.fee)}</div>
+          <button class="btn btn-primary btn-block" id="payBtn">Pay with M-Pesa</button>
+        </div>`;
+      document.getElementById("payBtn").addEventListener("click", ()=> startPayment(l));
+    }
+  }
+
+  function startPayment(l){
+    const area = document.getElementById("contactArea");
+    area.innerHTML = `
+      <div class="locked-box">
+        <label class="field-label" style="text-align:left;">M-Pesa number to send the STK push to</label>
+        <input type="tel" id="mpesaNum" placeholder="07XX XXX XXX" style="width:100%; margin-bottom:12px;">
+        <button class="btn btn-primary btn-block" id="stkBtn">Send request for ${fmtKES(l.fee)}</button>
+        <p class="demo-note">${HOUSIKA_API_BASE ? "Real M-Pesa payment via PayHero." : "Simulated for this demo — connect a backend to accept real payments."}</p>
+      </div>`;
+    document.getElementById("stkBtn").addEventListener("click", ()=>{
+      const num = document.getElementById("mpesaNum").value.trim();
+      if(!num){ document.getElementById("mpesaNum").focus(); return; }
+      area.innerHTML = `
+        <div style="text-align:center; padding:12px 0;">
+          <div class="spinner"></div>
+          <div style="font-weight:600;">Check your phone for the M-Pesa prompt…</div>
+          <div style="color:#6b7472; font-size:13px; margin-top:4px;">Sending ${fmtKES(l.fee)} request to ${escapeHTML(num)}</div>
+        </div>`;
+      if(HOUSIKA_API_BASE) runRealPayment(l, num, area);
+      else runSimulatedPayment(l, area);
+    });
+  }
+
+  async function unlockListing(l, area){
+    unlocked.push(l.id);
+    await setPersonal("unlocked-ids", unlocked);
+    renderContactArea(l, true);
+    showToast("Payment confirmed — contact unlocked");
+    renderHomeGrid(); renderBrowse();
+  }
+
+  function runSimulatedPayment(l, area){
+    setTimeout(()=> unlockListing(l, area), 1700);
+  }
+
+  async function runRealPayment(l, num, area){
+    const reference = "HSK-" + uuid().slice(0,8).toUpperCase();
+    try{
+      const res = await fetch(`${HOUSIKA_API_BASE}/api/stk-push`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ phone:num, amount:l.fee, reference, customerName: l.ownerName })
+      });
+      if(!res.ok) throw new Error("stk-push request failed");
+
+      let tries = 0;
+      const poll = setInterval(async ()=>{
+        tries++;
+        try{
+          const sRes = await fetch(`${HOUSIKA_API_BASE}/api/stk-status/${reference}`);
+          const sData = await sRes.json();
+          if(sData.status === "SUCCESS"){
+            clearInterval(poll);
+            unlockListing(l, area);
+          } else if(sData.status === "FAILED"){
+            clearInterval(poll);
+            area.innerHTML = `<div class="locked-box"><strong>Payment was not completed.</strong><div class="demo-note">Try again from the listing.</div><button class="btn btn-primary btn-block" style="margin-top:10px;" id="retryBtn">Try again</button></div>`;
+            document.getElementById("retryBtn").addEventListener("click", ()=> renderContactArea(l, false));
+          } else if(tries > 20){
+            clearInterval(poll);
+            area.innerHTML = `<div class="locked-box"><strong>Still waiting on that payment.</strong><div class="demo-note">Check your phone, or try again.</div><button class="btn btn-primary btn-block" style="margin-top:10px;" id="retryBtn">Try again</button></div>`;
+            document.getElementById("retryBtn").addEventListener("click", ()=> renderContactArea(l, false));
+          }
+        }catch(e){ /* keep polling until tries run out */ }
+      }, 3000);
+    }catch(err){
+      area.innerHTML = `<div class="locked-box"><strong>Couldn't reach the payment server.</strong><div class="demo-note">Confirm your backend is deployed and HOUSIKA_API_BASE is set correctly.</div><button class="btn btn-primary btn-block" style="margin-top:10px;" id="retryBtn">Try again</button></div>`;
+      document.getElementById("retryBtn").addEventListener("click", ()=> renderContactArea(l, false));
+    }
+  }
+
+  let toastTimer;
+  function showToast(msg){
+    const t = document.getElementById("toast");
+    document.getElementById("toastMsg").textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> t.classList.remove("show"), 2600);
+  }
+
+  document.getElementById("submitListing").addEventListener("click", async ()=>{
+    const name = document.getElementById("lName").value.trim();
+    const phone = document.getElementById("lPhone").value.trim();
+    const title = document.getElementById("lTitle").value.trim();
+    const type = document.getElementById("lType").value;
+    const county = document.getElementById("lCounty").value;
+    const area = document.getElementById("lArea").value.trim();
+    const beds = Number(document.getElementById("lBeds").value || 0);
+    const price = Number(document.getElementById("lPrice").value || 0);
+    const fee = Number(document.getElementById("lFee").value || 0);
+    const desc = document.getElementById("lDesc").value.trim();
+    const amenities = [...document.querySelectorAll("#lAmenities .chip-opt.on")].map(c=>c.getAttribute("data-a"));
+
+    if(!name || !phone || !title || !county || !area || !price){ showToast("Please fill in name, phone, title, county, area and rent"); return; }
+
+    const btn = document.getElementById("submitListing");
+    btn.disabled = true; btn.textContent = "Publishing…";
+
+    await setPersonal("landlord-name", name);
+    await setPersonal("landlord-phone", phone);
+
+    const newListing = {
+      id: uuid(), ownerId: myId, ownerName: name, phone, title, type, county, area, status:"vacant",
+      beds, price, fee: fee || 0, desc: desc || "No description provided.",
+      amenities: amenities.length ? amenities : ["Not specified"], createdAt: Date.now()
+    };
+
+    listings = await getShared("listings", listings);
+    listings.push(newListing);
+    await setShared("listings", listings);
+
+    btn.disabled = false; btn.textContent = "Publish listing";
+    ["lTitle","lArea","lPrice","lDesc"].forEach(id=> document.getElementById(id).value = "");
+    document.getElementById("lBeds").value = 1;
+    document.getElementById("lFee").value = 300;
+    document.querySelectorAll("#lAmenities .chip-opt.on").forEach(c=> c.classList.remove("on"));
+
+    showToast("Listing published to the board");
+    renderAll();
+  });
+
+  function renderMyListings(){
+    const mine = listings.filter(l=> l.ownerId === myId);
+    const wrap = document.getElementById("myListings");
+    if(!mine.length){ wrap.innerHTML = `<p style="color:var(--mist); font-size:14px;">You haven't published any listings on this device yet.</p>`; return; }
+    wrap.innerHTML = mine.map(l=>`
+      <div class="mylisting-row">
+        <div class="mylisting-info">
+          <div style="font-weight:600;">${escapeHTML(l.title)}<span class="status-badge ${l.status}">${l.status}</span></div>
+          <div class="mono">${countyCode(l.county)} · ${escapeHTML(l.area)} · ${fmtKES(l.price)}/mo</div>
+        </div>
+        <div class="row-actions">
+          <button class="toggle-btn" data-toggle="${l.id}">${l.status === "vacant" ? "Mark as rented" : "Mark as vacant"}</button>
+          <button class="del-btn" data-del="${l.id}">Remove</button>
+        </div>
+      </div>`).join("");
+
+    wrap.querySelectorAll("[data-toggle]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const id = btn.getAttribute("data-toggle");
+        listings = await getShared("listings", listings);
+        const l = listings.find(x=>x.id===id);
+        if(!l) return;
+        l.status = l.status === "vacant" ? "rented" : "vacant";
+        await setShared("listings", listings);
+        showToast(l.status === "rented" ? "Marked as rented — removed from the board" : "Marked as vacant — back on the board");
+        renderAll();
+      });
+    });
+    wrap.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const id = btn.getAttribute("data-del");
+        listings = await getShared("listings", listings);
+        listings = listings.filter(l=> l.id !== id);
+        await setShared("listings", listings);
+        showToast("Listing removed");
+        renderAll();
+      });
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
