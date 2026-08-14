@@ -16,12 +16,18 @@
  */
 
 require("dotenv").config();
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serves housika.html (and any other static files placed in this same
+// folder) at the root URL. This file MUST sit next to server.js for this
+// to work — same folder, deployed together.
+app.use(express.static(__dirname));
 
 const {
   PAYHERO_BASIC_TOKEN,   // the "Authorization: Basic <token>" value from your PayHero dashboard
@@ -110,6 +116,12 @@ app.get("/api/stk-status/:reference", (req, res) => {
   res.json(tx || { status: "PENDING" });
 });
 
-app.get("/", (_req, res) => res.send("HOUSIKA payment server is running."));
+// The actual HOUSIKA website. Requires housika.html to be deployed in the
+// same folder as this server.js file.
+app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "housika.html")));
+
+// Health check — visit /health to confirm the server process itself is up,
+// separate from whether housika.html is present.
+app.get("/health", (_req, res) => res.send("HOUSIKA payment server is running."));
 
 app.listen(PORT, () => console.log(`HOUSIKA payment server listening on port ${PORT}`));
