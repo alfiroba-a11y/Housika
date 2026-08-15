@@ -13,11 +13,13 @@ The server holds your PayHero credentials as environment variables instead,
 so they're never shipped to the browser. It also now serves `housika.html`
 itself at the root URL, so you only need one deployment, not two.
 
-## 1. Get your PayHero channel ID
+## 1. Get your PayHero channel ID and account ID
 
 Log in to your PayHero dashboard → **Payment Channels** → **My Payment
 Channels**, and copy the numeric ID of the channel (till, paybill, or bank
-account) you want payments to land in. You'll need this for `PAYHERO_CHANNEL_ID`.
+account) you want payments to land in. You'll need this for
+`PAYHERO_CHANNEL_ID`. Note the **account ID** shown alongside it too — the
+API requires both.
 
 ## 2. Configure
 
@@ -31,6 +33,7 @@ Open `.env` and fill in:
 
 - `PAYHERO_BASIC_TOKEN` — the Basic Auth token from your PayHero dashboard (just the token, not the word "Basic")
 - `PAYHERO_CHANNEL_ID` — from step 1
+- `PAYHERO_ACCOUNT_ID` — from step 1
 - `PUBLIC_CALLBACK_URL` — set this **after** you deploy (step 3), once you know your server's public address
 
 ## 3. Deploy — this whole folder, as one service
