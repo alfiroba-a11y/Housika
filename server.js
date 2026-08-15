@@ -170,6 +170,24 @@ app.get("/api/stk-status/:reference", (req, res) => {
   res.json(tx || { status: "PENDING" });
 });
 
+// TEMPORARY DIAGNOSTIC ROUTE — asks PayHero directly for this channel's full
+// details, including its real account_id, since that field doesn't always
+// show up in the dashboard UI. Visit /api/debug-channel once, note the
+// account_id in the response, put it in PAYHERO_ACCOUNT_ID, then delete
+// this route (or just leave it — it only reveals channel metadata, not
+// your credentials or any transaction data).
+app.get("/api/debug-channel", async (_req, res) => {
+  try {
+    const r = await fetch(`https://backend.payhero.co.ke/api/v2/payment_channels/${PAYHERO_CHANNEL_ID}`, {
+      headers: { "Authorization": `Basic ${PAYHERO_BASIC_TOKEN}` }
+    });
+    const data = await r.json();
+    res.status(r.status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Couldn't reach PayHero", details: err.message });
+  }
+});
+
 // The actual HOUSIKA website. Requires housika.html to be deployed in the
 // same folder as this server.js file.
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "housika.html")));
