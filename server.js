@@ -74,23 +74,38 @@ app.post("/api/stk-push", async (req, res) => {
   }
 
   try {
-    const payheroRes = await fetch("https://api.payhero.africa/api/v2/payments", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Basic ${PAYHERO_BASIC_TOKEN}`
-      },
-      body: JSON.stringify({
-        amount: Math.round(Number(amount)),
-        phone_number: phoneNumber,
-        provider: "m-pesa",
-        network_code: "63902",
-        channel_id: Number(PAYHERO_CHANNEL_ID),
-        account_id: Number(PAYHERO_ACCOUNT_ID),
-        external_reference: reference,
-        callback_url: PUBLIC_CALLBACK_URL
-      })
-    });
+    // Accept-Encoding: identity avoids a Node/undici bug where a gzip-encoded
+    // response that gets interrupted mid-stream crashes with a cryptic
+    // "incorrect header check" / Z_DATA_ERROR instead of a clean network error.
+    // AbortController gives us a real timeout instead of hanging indefinitely
+    // if PayHero (or the network path to it) stalls.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    let payheroRes;
+    try {
+      payheroRes = await fetch("https://api.payhero.africa/api/v2/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Basic ${PAYHERO_BASIC_TOKEN}`,
+          "Accept-Encoding": "identity"
+        },
+        body: JSON.stringify({
+          amount: Math.round(Number(amount)),
+          phone_number: phoneNumber,
+          provider: "m-pesa",
+          network_code: "63902",
+          channel_id: Number(PAYHERO_CHANNEL_ID),
+          account_id: Number(PAYHERO_ACCOUNT_ID),
+          external_reference: reference,
+          callback_url: PUBLIC_CALLBACK_URL
+        }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     const data = await payheroRes.json();
 
@@ -102,6 +117,10 @@ app.post("/api/stk-push", async (req, res) => {
     transactions.set(reference, { status: "PENDING", createdAt: Date.now() });
     res.json({ ok: true, payhero: data });
   } catch (err) {
+    if (err.name === "AbortError") {
+      console.error("Timed out waiting for PayHero to respond");
+      return res.status(504).json({ error: "Timed out waiting for PayHero to respond. Try again." });
+    }
     console.error("Failed to reach PayHero:", err);
     res.status(500).json({ error: "Failed to reach PayHero" });
   }
