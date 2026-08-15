@@ -73,6 +73,29 @@ app.post("/api/stk-push", async (req, res) => {
     return res.status(400).json({ error: `"${phone}" doesn't look like a valid Kenyan phone number` });
   }
 
+  const channelId = Number(PAYHERO_CHANNEL_ID);
+  const accountId = Number(PAYHERO_ACCOUNT_ID);
+  if (!Number.isFinite(channelId) || !Number.isFinite(accountId)) {
+    console.error(
+      `PAYHERO_CHANNEL_ID or PAYHERO_ACCOUNT_ID isn't a valid number. ` +
+      `Got PAYHERO_CHANNEL_ID="${PAYHERO_CHANNEL_ID}" PAYHERO_ACCOUNT_ID="${PAYHERO_ACCOUNT_ID}" ` +
+      `— check for stray spaces, quotes, or non-digit characters in Render's Environment tab.`
+    );
+    return res.status(500).json({ error: "Server is misconfigured: PAYHERO_CHANNEL_ID or PAYHERO_ACCOUNT_ID is not a valid number." });
+  }
+
+  const payload = {
+    amount: Math.round(Number(amount)),
+    phone_number: phoneNumber,
+    provider: "m-pesa",
+    network_code: "63902",
+    channel_id: channelId,
+    account_id: accountId,
+    external_reference: reference,
+    callback_url: PUBLIC_CALLBACK_URL
+  };
+  console.log("Sending to PayHero:", JSON.stringify(payload));
+
   try {
     // Accept-Encoding: identity avoids a Node/undici bug where a gzip-encoded
     // response that gets interrupted mid-stream crashes with a cryptic
@@ -91,16 +114,7 @@ app.post("/api/stk-push", async (req, res) => {
           "Authorization": `Basic ${PAYHERO_BASIC_TOKEN}`,
           "Accept-Encoding": "identity"
         },
-        body: JSON.stringify({
-          amount: Math.round(Number(amount)),
-          phone_number: phoneNumber,
-          provider: "m-pesa",
-          network_code: "63902",
-          channel_id: Number(PAYHERO_CHANNEL_ID),
-          account_id: Number(PAYHERO_ACCOUNT_ID),
-          external_reference: reference,
-          callback_url: PUBLIC_CALLBACK_URL
-        }),
+        body: JSON.stringify(payload),
         signal: controller.signal
       });
     } finally {
