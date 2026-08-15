@@ -32,14 +32,15 @@ app.use(express.static(__dirname));
 const {
   PAYHERO_BASIC_TOKEN,   // the "Authorization: Basic <token>" value from your PayHero dashboard
   PAYHERO_CHANNEL_ID,    // your Payment Channels -> My Payment Channels ID in PayHero
+  PAYHERO_ACCOUNT_ID,    // your PayHero account ID (shown alongside your channel in the dashboard)
   PUBLIC_CALLBACK_URL,   // e.g. https://your-deployed-server.com/api/payhero-callback
   PORT = 4000
 } = process.env;
 
-if (!PAYHERO_BASIC_TOKEN || !PAYHERO_CHANNEL_ID || !PUBLIC_CALLBACK_URL) {
+if (!PAYHERO_BASIC_TOKEN || !PAYHERO_CHANNEL_ID || !PAYHERO_ACCOUNT_ID || !PUBLIC_CALLBACK_URL) {
   console.warn(
     "\n⚠️  Missing PayHero configuration.\n" +
-    "   Set PAYHERO_BASIC_TOKEN, PAYHERO_CHANNEL_ID and PUBLIC_CALLBACK_URL in your .env file.\n" +
+    "   Set PAYHERO_BASIC_TOKEN, PAYHERO_CHANNEL_ID, PAYHERO_ACCOUNT_ID and PUBLIC_CALLBACK_URL in your .env file.\n" +
     "   See .env.example and README.md for details.\n"
   );
 }
@@ -49,30 +50,31 @@ if (!PAYHERO_BASIC_TOKEN || !PAYHERO_CHANNEL_ID || !PUBLIC_CALLBACK_URL) {
 // this in-memory map resets whenever the server restarts.
 const transactions = new Map();
 
-// PayHero expects Kenyan numbers in international format with no plus sign,
-// e.g. 254712345678. Tenants naturally type 07XXXXXXXX or 01XXXXXXXX, so
-// normalize whatever format comes in from the site before sending it on.
+// PayHero expects Kenyan numbers in LOCAL format (e.g. 0708344101) per their
+// own API docs — not the 254-prefixed international format. Tenants may type
+// spaces, dashes, a leading 254, or a leading +254, so normalize all of that
+// down to the plain 07XXXXXXXX / 01XXXXXXXX shape PayHero wants.
 function normalizePhone(raw) {
   const digits = String(raw).replace(/\D/g, ""); // strip spaces, +, dashes etc.
-  if (digits.startsWith("254")) return digits;
-  if (digits.startsWith("0")) return "254" + digits.slice(1);
-  if (digits.startsWith("7") || digits.startsWith("1")) return "254" + digits;
+  if (digits.startsWith("254")) return "0" + digits.slice(3);
+  if (digits.startsWith("0")) return digits;
+  if (digits.startsWith("7") || digits.startsWith("1")) return "0" + digits;
   return digits;
 }
 
 app.post("/api/stk-push", async (req, res) => {
-  const { phone, amount, reference, customerName } = req.body || {};
+  const { phone, amount, reference } = req.body || {};
   if (!phone || !amount || !reference) {
     return res.status(400).json({ error: "phone, amount and reference are required" });
   }
 
   const phoneNumber = normalizePhone(phone);
-  if (!/^254(7|1)\d{8}$/.test(phoneNumber)) {
+  if (!/^0(7|1)\d{8}$/.test(phoneNumber)) {
     return res.status(400).json({ error: `"${phone}" doesn't look like a valid Kenyan phone number` });
   }
 
   try {
-    const payheroRes = await fetch("https://backend.payhero.co.ke/api/v2/payments", {
+    const payheroRes = await fetch("https://api.payhero.africa/api/v2/payments", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -81,10 +83,11 @@ app.post("/api/stk-push", async (req, res) => {
       body: JSON.stringify({
         amount: Math.round(Number(amount)),
         phone_number: phoneNumber,
-        channel_id: Number(PAYHERO_CHANNEL_ID),
         provider: "m-pesa",
+        network_code: "63902",
+        channel_id: Number(PAYHERO_CHANNEL_ID),
+        account_id: Number(PAYHERO_ACCOUNT_ID),
         external_reference: reference,
-        customer_name: customerName || "HOUSIKA tenant",
         callback_url: PUBLIC_CALLBACK_URL
       })
     });
@@ -107,15 +110,17 @@ app.post("/api/stk-push", async (req, res) => {
 // PayHero posts the payment result here. Set this exact URL (yourdomain +
 // /api/payhero-callback) as PUBLIC_CALLBACK_URL in your .env, and it's what
 // gets sent to PayHero on every /api/stk-push request.
+//
+// Real payload shape from PayHero docs:
+// { success, status: "success", reference, external_reference, amount,
+//   currency, transaction_id, transaction_date, transaction_type,
+//   provider_reference, provider, callback_urls }
 app.post("/api/payhero-callback", (req, res) => {
   const body = req.body || {};
   console.log("PayHero callback received:", JSON.stringify(body));
 
-  // PayHero's callback payload can vary slightly — log a few real callbacks
-  // during testing and adjust these field names if needed.
   const reference = body.external_reference || body.reference;
-  const rawStatus = (body.status || body.ResultDesc || "").toString().toUpperCase();
-  const success = rawStatus.includes("SUCCESS") || rawStatus === "COMPLETED";
+  const success = body.success === true || (body.status || "").toString().toUpperCase() === "SUCCESS";
 
   if (reference) {
     transactions.set(reference, {
